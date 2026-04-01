@@ -1,5 +1,5 @@
 en:
   theme_metadata:
-    description: "TODO"
+    description: "Automatically resizes embedded iframes based on postMessage height updates from trusted origins."
     settings:
-      example_setting: "A description of a setting."
+      managed_origins: "Allowed iframe origins for auto-height resizing."
