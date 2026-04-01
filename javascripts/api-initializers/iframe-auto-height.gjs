@@ -1,12 +1,15 @@
 import { apiInitializer } from "discourse/lib/api";
 
 const COMPONENT_ID = "iframe-auto-height";
-const READY_ATTR = "data-auto-height-ready";
+const READY_ATTR = "data-iframe-auto-height-ready";
 const MIN_HEIGHT = 200;
 const MAX_HEIGHT = 12000;
 
-// Change this to the iframe origin(s) you control.
-const MANAGED_ORIGINS = ["https://noobish.me"];
+function getManagedOrigins() {
+  return (settings.managed_origins || [])
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+}
 
 function getIframeOrigin(iframe) {
   try {
@@ -20,7 +23,7 @@ function isManagedIframe(iframe) {
   if (!(iframe instanceof HTMLIFrameElement)) return false;
 
   const origin = getIframeOrigin(iframe);
-  return !!origin && MANAGED_ORIGINS.includes(origin);
+  return !!origin && getManagedOrigins().includes(origin);
 }
 
 function ensureIframeId(iframe) {
@@ -62,7 +65,7 @@ function sendParentReadyMessage(iframe) {
 
   iframe.contentWindow.postMessage(
     {
-      type: "discourse-iframe-parent-ready",
+      type: "iframe-parent-ready",
       iframeId: ensureIframeId(iframe),
     },
     targetOrigin
@@ -114,10 +117,10 @@ export default apiInitializer("0.11.1", (api) => {
     const data = event.data;
 
     if (!data || typeof data !== "object") return;
-    if (data.type !== "discourse-iframe-height") return;
+    if (data.type !== "iframe-height") return;
     if (!data.iframeId) return;
     if (typeof data.height !== "number") return;
-    if (!MANAGED_ORIGINS.includes(event.origin)) return;
+    if (!getManagedOrigins().includes(event.origin)) return;
 
     const iframe = document.querySelector(
       `iframe[data-iframe-auto-height-id="${CSS.escape(data.iframeId)}"]`
