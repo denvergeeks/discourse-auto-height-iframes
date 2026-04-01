@@ -1,5 +1,5 @@
 managed_origins:
   type: list
-  default: "https://embed.story.pub"
+  default: "https://noobish.me"
   description:
     en: "Allowed iframe origins for auto-height resizing."
