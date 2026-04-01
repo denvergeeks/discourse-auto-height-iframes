@@ -1,2 +1,5 @@
-example_setting:
-  default: true
+managed_origins:
+  type: list
+  default: "https://embed.story.pub"
+  description:
+    en: "Allowed iframe origins for auto-height resizing."
