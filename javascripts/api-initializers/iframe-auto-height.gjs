@@ -6,9 +6,24 @@ const MIN_HEIGHT = 200;
 const MAX_HEIGHT = 12000;
 
 function getManagedOrigins() {
-  return (settings.managed_origins || [])
-    .map((value) => String(value).trim())
-    .filter(Boolean);
+  const raw = settings.managed_origins;
+
+  if (Array.isArray(raw)) {
+    return raw.map((value) => String(value).trim()).filter(Boolean);
+  }
+
+  if (typeof raw === "string") {
+    return raw
+      .split("|")
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  if (raw == null) {
+    return [];
+  }
+
+  return [String(raw).trim()].filter(Boolean);
 }
 
 function getIframeOrigin(iframe) {
@@ -84,51 +99,4 @@ function prepareIframe(iframe) {
       : "600px";
   }
 
-  iframe.style.width = "100%";
-  iframe.style.border = "0";
-  iframe.setAttribute("loading", iframe.getAttribute("loading") || "lazy");
-  iframe.setAttribute("scrolling", "no");
-  iframe.setAttribute(READY_ATTR, "true");
-
-  iframe.addEventListener("load", () => {
-    sendParentReadyMessage(iframe);
-  });
-
-  sendParentReadyMessage(iframe);
-}
-
-export default apiInitializer("0.11.1", (api) => {
-  api.decorateCookedElement(
-    (cooked) => {
-      cooked.querySelectorAll("iframe").forEach((iframe) => {
-        prepareIframe(iframe);
-      });
-    },
-    { id: COMPONENT_ID, onlyStream: true }
-  );
-
-  if (window.__iframeAutoHeightMessageListenerInstalled) {
-    return;
-  }
-
-  window.__iframeAutoHeightMessageListenerInstalled = true;
-
-  window.addEventListener("message", (event) => {
-    const data = event.data;
-
-    if (!data || typeof data !== "object") return;
-    if (data.type !== "iframe-height") return;
-    if (!data.iframeId) return;
-    if (typeof data.height !== "number") return;
-    if (!getManagedOrigins().includes(event.origin)) return;
-
-    const iframe = document.querySelector(
-      `iframe[data-iframe-auto-height-id="${CSS.escape(data.iframeId)}"]`
-    );
-
-    if (!iframe) return;
-    if (!isManagedIframe(iframe)) return;
-
-    setIframeHeight(iframe, Math.ceil(data.height));
-  });
-});
+  iframe.style.width 
