@@ -43,13 +43,13 @@ function isManagedIframe(iframe) {
 
 function ensureIframeId(iframe) {
   if (!iframe.dataset.iframeAutoHeightId) {
-    const srcId = (() => {
-      try {
-        return new URL(iframe.src, window.location.href).searchParams.get("iframeId");
-      } catch {
-        return null;
-      }
-    })();
+    let srcId = null;
+
+    try {
+      srcId = new URL(iframe.src, window.location.href).searchParams.get("iframeId");
+    } catch {
+      srcId = null;
+    }
 
     iframe.dataset.iframeAutoHeightId =
       srcId ||
@@ -94,9 +94,58 @@ function prepareIframe(iframe) {
   ensureIframeId(iframe);
 
   if (!iframe.style.height) {
-    iframe.style.height = iframe.getAttribute("height")
-      ? `${parseInt(iframe.getAttribute("height"), 10) || 600}px`
-      : "600px";
+    const attrHeight = parseInt(iframe.getAttribute("height"), 10);
+    iframe.style.height = `${attrHeight || 600}px`;
   }
 
-  iframe.style.width 
+  iframe.style.width = "100%";
+  iframe.style.border = "0";
+  iframe.setAttribute("loading", iframe.getAttribute("loading") || "lazy");
+  iframe.setAttribute("scrolling", "no");
+  iframe.setAttribute(READY_ATTR, "true");
+
+  iframe.addEventListener("load", () => {
+    sendParentReadyMessage(iframe);
+  });
+
+  sendParentReadyMessage(iframe);
+}
+
+export default apiInitializer("0.11.1", (api) => {
+  api.decorateCookedElement(
+    (cooked) => {
+      cooked.querySelectorAll("iframe").forEach((iframe) => {
+        prepareIframe(iframe);
+      });
+    },
+    {
+      id: COMPONENT_ID,
+      onlyStream: true,
+    }
+  );
+
+  if (window.__iframeAutoHeightMessageListenerInstalled) {
+    return;
+  }
+
+  window.__iframeAutoHeightMessageListenerInstalled = true;
+
+  window.addEventListener("message", (event) => {
+    const data = event.data;
+
+    if (!data || typeof data !== "object") return;
+    if (data.type !== "iframe-height") return;
+    if (!data.iframeId) return;
+    if (typeof data.height !== "number") return;
+    if (!getManagedOrigins().includes(event.origin)) return;
+
+    const iframe = document.querySelector(
+      `iframe[data-iframe-auto-height-id="${CSS.escape(data.iframeId)}"]`
+    );
+
+    if (!iframe) return;
+    if (!isManagedIframe(iframe)) return;
+
+    setIframeHeight(iframe, Math.ceil(data.height));
+  });
+});
